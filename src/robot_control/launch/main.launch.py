@@ -31,6 +31,7 @@ def generate_launch_description():
     wheel_controller = Node(
         package="robot_control",
         executable="wheel_controller.py",
+        parameters=[{"use_sim_time": True}]
     )
 
     description = LaunchDescription()

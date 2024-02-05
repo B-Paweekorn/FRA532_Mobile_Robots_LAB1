@@ -12,6 +12,8 @@ from sensor_msgs.msg import LaserScan, Imu
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Header, Float32
 from tf2_ros import TransformBroadcaster
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 import tf_transformations
 import math
 import numpy as np
@@ -26,6 +28,9 @@ class WheelController(Node):
         self.publisher = self.create_publisher(Odometry, 'odom', 10)
         self.timer = self.create_timer(self.dt_loop, self.timer_callback)
         self.tf_br = TransformBroadcaster(self)
+
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.x = 0.0
         self.y = 0.0
@@ -70,16 +75,6 @@ class WheelController(Node):
         transform.transform.translation.z = odom_msg.pose.pose.position.z
         transform.transform.rotation = odom_msg.pose.pose.orientation
         self.tf_br.sendTransform(transform)
-
-        # transform = TransformStamped()
-        # transform.header.stamp = odom_msg.header.stamp
-        # transform.header.frame_id = 'map'
-        # transform.child_frame_id = 'odom'
-        # transform.transform.translation.x = 0.0
-        # transform.transform.translation.y = 0.0
-        # transform.transform.translation.z = 0.0
-        # transform.transform.rotation = 0.0
-        # self.tf_br.sendTransform(transform)
 
     
 def main(args=None):
