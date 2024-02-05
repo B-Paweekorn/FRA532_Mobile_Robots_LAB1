@@ -36,6 +36,7 @@ install(
     scripts/ik.py
     scripts/VFF.py
     scripts/wheel_controller.py
+    scripts/velocity_controller.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
