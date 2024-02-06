@@ -33,9 +33,8 @@ install(
 
 install(
   PROGRAMS
-    scripts/ik.py
     scripts/VFF.py
-    scripts/wheel_controller.py
+    scripts/odom_publisher.py
     scripts/velocity_controller.py
   DESTINATION lib/${PROJECT_NAME}
 )

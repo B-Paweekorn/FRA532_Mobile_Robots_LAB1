@@ -10,7 +10,7 @@ from geometry_msgs.msg import (
 )
 from sensor_msgs.msg import LaserScan, Imu
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Header, Float32
+from std_msgs.msg import Header, Float32, Float32MultiArray
 from tf2_ros import TransformBroadcaster
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
@@ -19,13 +19,15 @@ import math
 import numpy as np
 
 
-class WheelController(Node):
+class odom_publisher(Node):
     def __init__(self):
-        super().__init__("wheel_controller")
+        super().__init__("odom_publisher")
 
         self.dt_loop = 0.01
 
         self.publisher = self.create_publisher(Odometry, 'odom', 10)
+
+        self.subscriptions_wheelspeed = self.create_subscription(Float32MultiArray, 'feedback_wheelspeed', self.wheelspeed_callback, 10)
         self.timer = self.create_timer(self.dt_loop, self.timer_callback)
         self.tf_br = TransformBroadcaster(self)
 
@@ -36,17 +38,33 @@ class WheelController(Node):
         self.y = 0.0
         self.th = 0.0
 
+        self.delta_x = 0.0
+        self.delta_y = 0.0
+        self.delta_th = 0.0
+
+        self.rightwheel_speed = 0.0
+        self.leftwheel_speed = 0.0
+
+    def wheelspeed_callback(self, msg):
+        current_time = self.get_clock().now()
+        if not hasattr(self, 'last_callback_time'):
+            self.last_callback_time = current_time
+            return
+        dt = (current_time - self.last_callback_time).to_msg().nanosec * 1e-9
+
+        self.last_callback_time = current_time
+        self.leftwheel_speed = msg.data[0] * 0.075
+        self.rightwheel_speed = msg.data[1] * 0.075
+
+        self.delta_x = (self.rightwheel_speed + self.leftwheel_speed) * 0.5 * math.cos(self.th)
+        self.delta_y = (self.rightwheel_speed + self.leftwheel_speed) * 0.5 * math.sin(self.th)
+        self.delta_th = (self.rightwheel_speed - self.leftwheel_speed) / 0.4
+
+        self.x += np.round(self.delta_x * dt, 3)
+        self.y += np.round(self.delta_y * dt, 3)
+        self.th += np.round(self.delta_th * dt, 3)
 
     def timer_callback(self):
-        # delta_x = self.wheelspeed * math.cos(self.relative_yaw) * self.dt_loop
-        # delta_y = self.wheelspeed * math.sin(self.relative_yaw) * self.dt_loop
-
-        delta_x = 0.0
-        delta_y = 0.0
-
-        self.x += delta_x
-        self.y += delta_y
-
         quaternion = tf_transformations.quaternion_from_euler(0.0, 0.0, self.th)
         # Create Odometry message and fill in the data
         odom_msg = Odometry()
@@ -61,9 +79,10 @@ class WheelController(Node):
             z=quaternion[2],
             w=quaternion[3]
         )
+
         )
-        odom_msg.twist.twist.linear = Vector3(x=0.0, y=0.0, z=0.0)
-        odom_msg.twist.twist.angular = Vector3(x=0.0, y=0.0, z=0.0)
+        odom_msg.twist.twist.linear = Vector3(x=np.round(self.delta_x, 3), y=np.round(self.delta_y, 3), z=0.0)
+        odom_msg.twist.twist.angular = Vector3(x=0.0, y=0.0, z=np.round(self.delta_th, 3))
         self.publisher.publish(odom_msg)
 
         transform = TransformStamped()
@@ -79,7 +98,7 @@ class WheelController(Node):
     
 def main(args=None):
     rclpy.init(args=args)
-    node = WheelController()
+    node = odom_publisher()
     rclpy.spin(node)
     rclpy.shutdown()
 

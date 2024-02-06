@@ -28,7 +28,7 @@ class VelocityController(Node):
 
         self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
         self.create_subscription(JointState, "joint_states", self.joint_state_callback, 10)
-        self.pub_wheelspeed = self.create_publisher(Float32MultiArray, "wheelspeed", 10)
+        self.pub_wheelspeed = self.create_publisher(Float32MultiArray, "feedback_wheelspeed", 10)
         self.pub_velocities = self.create_publisher(Float64MultiArray, "velocity_controllers/commands", 10)
 
     
@@ -38,8 +38,8 @@ class VelocityController(Node):
         meter2rev = 1 / (2 * math.pi * self.wheel_radius)
 
         # convert to wheel speeds of differential drive robot (rev/s)
-        left_wheel_speed = linear * meter2rev + (angular * self.wheel_separation / 2) * meter2rev
-        right_wheel_speed = linear * meter2rev - (angular * self.wheel_separation / 2) * meter2rev
+        left_wheel_speed = linear * meter2rev - (angular * self.wheel_separation / 2) * meter2rev
+        right_wheel_speed = linear * meter2rev + (angular * self.wheel_separation / 2) * meter2rev
 
         # convert wheel speeds to angular velocities (rad/s)
         left_wheel_speed *= 2 * math.pi

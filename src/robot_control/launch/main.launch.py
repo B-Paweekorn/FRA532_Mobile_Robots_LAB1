@@ -28,21 +28,22 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([launch_file_dir, "/navigation.launch.py"])
     )
 
-    wheel_controller = Node(
+    odom_publisher = Node(
         package="robot_control",
-        executable="wheel_controller.py",
+        executable="odom_publisher.py",
         parameters=[{"use_sim_time": True}]
     )
 
     velocity_controller = Node(
         package="robot_control",
         executable="velocity_controller.py",
-        parameters=[{"use_sim_time": True}]
+        parameters=[{"use_sim_time": True}],
+        remappings={("/cmd_vel", "/cmd_vel_nav2")}
     )
 
     description = LaunchDescription()
     description.add_action(simulation)
     description.add_action(navigation)
-    description.add_action(wheel_controller)
-    description.add_action(velocity_controller)
+    # description.add_action(velocity_controller)
+    description.add_action(odom_publisher)
     return description
