@@ -8,7 +8,8 @@ from geometry_msgs.msg import PoseStamped
 import tf_transformations
 import numpy as np
 import matplotlib.pyplot as plt
-from collections import deque
+from sklearn.cluster import KMeans
+
 
 class GlobalCostmapNode(Node):
     def __init__(self):
@@ -28,8 +29,8 @@ class GlobalCostmapNode(Node):
         self.robot_th = 0.0
 
         # robot goal [m]
-        self.goal_x = -5.0
-        self.goal_y = 5.0
+        self.goal_x = -11.0
+        self.goal_y = 3.5
         
         # robot properties [m]
         self.robot_radius = 5.0
@@ -48,7 +49,7 @@ class GlobalCostmapNode(Node):
         self.map, self.scale_x, self.scale_y = self.create_map()
         if self.map_received is True:
             print("Received map")
-            self.vff_planner(self.robot_x, self.robot_y, self.goal_x, self.goal_y, self.obs_x, self.obs_y, 0.5, 0.40)
+            self.vff_planner(self.robot_x, self.robot_y, self.goal_x, self.goal_y, self.obs_x, self.obs_y, 0.3, 0.55)
             if self.visualize:
                 print("Start visualizing map")
                 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
@@ -100,8 +101,18 @@ class GlobalCostmapNode(Node):
                     map_obstacle_y.append(map_scale_y[i])
 
         filtercost_map = np.flipud(filtercost_map)
-        self.obs_x = map_obstacle_x
-        self.obs_y = map_obstacle_y
+
+        obstacle_points = np.column_stack((map_obstacle_x, map_obstacle_y))
+        kmeans = KMeans(n_clusters=400)  # Adjust the number of clusters as needed
+        kmeans.fit(obstacle_points)
+        cluster_centers = kmeans.cluster_centers_
+
+        # Assign downsampled obstacle points to self.obs_x and self.obs_y
+        self.obs_x = cluster_centers[:, 0]
+        self.obs_y = cluster_centers[:, 1]
+        print(len(map_obstacle_x))
+        # self.obs_x = map_obstacle_x
+        # self.obs_y = map_obstacle_y
         self.map_received = True
         return filtercost_map, map_scale_x, map_scale_y
 
@@ -202,7 +213,7 @@ class GlobalCostmapNode(Node):
         if dq <= rbtr:
             if dq <= 0.1:
                 dq = 0.1
-            return 0.5 * 100.0 * (1.0 / dq - 1.0 / rbtr) ** 2
+            return 0.5 * 3000.0 * (1.0 / dq - 1.0 / rbtr) ** 2
         else:
             return 0.0
     
