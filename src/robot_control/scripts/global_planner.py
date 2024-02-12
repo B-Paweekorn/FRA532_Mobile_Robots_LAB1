@@ -9,6 +9,7 @@ import tf_transformations
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+from nav_msgs.msg import Path
 
 
 class GlobalCostmapNode(Node):
@@ -18,7 +19,8 @@ class GlobalCostmapNode(Node):
         self.create_subscription(Odometry, 'odom', self.robotpose_callback, 10)
         self.create_timer(0.05, self.update)
         
-        self.visualize = True
+        self.path_publisher = self.create_publisher(Path, 'plan', 10)
+        self.visualize = False
         self.map_received = False
         self.map_data = None
         self.map_info = None
@@ -29,11 +31,14 @@ class GlobalCostmapNode(Node):
         self.robot_th = 0.0
 
         # robot goal [m]
-        self.goal_x = -11.0
-        self.goal_y = 3.5
+        self.goal_x = 9.9
+        self.goal_y = -6.6
         
         # robot properties [m]
-        self.robot_radius = 5.0
+        self.robot_radius = 0.7
+
+        # Resolution
+        self.calc_res = 0.5
 
     def robotpose_callback(self, msg):
         self.robot_x = msg.pose.pose.position.x
@@ -49,9 +54,9 @@ class GlobalCostmapNode(Node):
         self.map, self.scale_x, self.scale_y = self.create_map()
         if self.map_received is True:
             print("Received map")
-            self.vff_planner(self.robot_x, self.robot_y, self.goal_x, self.goal_y, self.obs_x, self.obs_y, 0.3, 0.55)
+            path_x, path_y = self.vff_planner(self.robot_x, self.robot_y, self.goal_x, self.goal_y, self.obs_x, self.obs_y, self.calc_res, self.robot_radius)
+            self.path_marker([path_x,path_y])
             if self.visualize:
-                print("Start visualizing map")
                 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 
                 ax1.imshow(self.map, cmap='gray', extent=[self.scale_x[0], self.scale_x[-1], self.scale_y[0], self.scale_y[-1]])
@@ -110,9 +115,7 @@ class GlobalCostmapNode(Node):
         # Assign downsampled obstacle points to self.obs_x and self.obs_y
         self.obs_x = cluster_centers[:, 0]
         self.obs_y = cluster_centers[:, 1]
-        print(len(map_obstacle_x))
-        # self.obs_x = map_obstacle_x
-        # self.obs_y = map_obstacle_y
+
         self.map_received = True
         return filtercost_map, map_scale_x, map_scale_y
 
@@ -123,7 +126,6 @@ class GlobalCostmapNode(Node):
         # rese : resolution
         # rbtr : robot radius
         # calc potential field
-        print("Calculated potential map")
         pmap, minx, miny = self.vff_calc(gx, gy, ox, oy, reso, rbtr)
         print("Calculated potential map success")
         # search path
@@ -134,12 +136,11 @@ class GlobalCostmapNode(Node):
         giy = round((gy - miny) / reso)
 
         if self.visualize:
-            print("VFF started visualized")
             self.draw_heatmap(pmap)
             plt.gcf().canvas.mpl_connect('key_release_event',
                     lambda event: [exit(0) if event.key == 'escape' else None])
-            plt.plot(ix, iy, "*k")
-            plt.plot(gix, giy, "*m")
+            plt.plot(sx, sy, "*k")
+            plt.plot(gx, gy, "*m")
         
         rx, ry = [sx], [sy]
         motion = self.get_motion_model()
@@ -168,11 +169,11 @@ class GlobalCostmapNode(Node):
             ry.append(yp)
 
             if self.visualize:
-                plt.plot(ix, iy, ".r")
+                plt.plot(xp, yp, ".r")
                 plt.pause(0.01)
 
         print("Goal!!")
-
+        print("---------------")
         return rx, ry
     
     def vff_calc(self, gx, gy, ox, oy, reso, rbtr):
@@ -187,13 +188,14 @@ class GlobalCostmapNode(Node):
 
         for ix in range(xw):
             x = ix * reso + minx
-            print(ix*100/xw, "%")
+            # print(ix*100/xw, "%")
             for iy in range(yw):
                 y = iy * reso + miny
                 ug = self.calc_attractive_potential(x, y, gx, gy)
                 uo = self.calc_repulsive_potential(x, y, ox, oy, rbtr)
                 uf = ug + uo
                 pmap[ix][iy] = uf
+
         return pmap, minx, miny
 
     def calc_attractive_potential(self, x, y, gx, gy):
@@ -219,7 +221,12 @@ class GlobalCostmapNode(Node):
     
     def draw_heatmap(self, data):
         data = np.array(data).T
-        plt.pcolor(data, vmax=100.0, cmap=plt.cm.Blues)
+        plt.imshow(data, origin='lower', cmap='cool', extent=[self.origin_x, self.origin_x + self.resolution * self.width, self.origin_y, self.origin_y + self.resolution * self.height])
+        plt.colorbar(label='Potential')
+        plt.xlabel('X Coordinate (m)')
+        plt.ylabel('Y Coordinate (m)')
+        plt.title('Potential Map')
+        plt.grid(True)
         
     def get_motion_model(self):
         # dx, dy
@@ -235,14 +242,22 @@ class GlobalCostmapNode(Node):
         return motion
     
     def path_marker(self, path):
-        for i in range(len(path)):
-            # Publish the goal point for visualization in RViz
-            goal_marker = PoseStamped()
-            goal_marker.header.frame_id = "map"
-            goal_marker.pose.position = path[i].pose.position
-            self.goal_marker_publisher.publish(goal_marker)
-            return path[i]
-        return None
+        # Create a Path message
+        path_msg = Path()
+        path_msg.header.frame_id = "map"  # Set the frame ID appropriately
+        
+        for i in range(len(path[0])):
+            pose = PoseStamped()
+            pose.header.stamp = self.get_clock().now().to_msg()
+            pose.header.frame_id = "map"  # Set the frame ID appropriately
+            pose.pose.position.x = path[0][i]
+            pose.pose.position.y = path[1][i]
+            # Assuming the orientation is not relevant for your application
+            pose.pose.orientation.w = 1.0
+            path_msg.poses.append(pose)
+
+        # Publish the path message
+        self.path_publisher.publish(path_msg)
 
 def main(args=None):
     rclpy.init(args=args)
