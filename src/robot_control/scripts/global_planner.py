@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from nav_msgs.msg import Path
-
+from scipy.interpolate import CubicSpline
 
 class GlobalCostmapNode(Node):
     def __init__(self):
@@ -20,7 +20,7 @@ class GlobalCostmapNode(Node):
         self.create_timer(0.05, self.update)
         
         self.path_publisher = self.create_publisher(Path, 'plan', 10)
-        self.visualize = False
+        self.visualize = True
         self.map_received = False
         self.map_data = None
         self.map_info = None
@@ -31,14 +31,18 @@ class GlobalCostmapNode(Node):
         self.robot_th = 0.0
 
         # robot goal [m]
-        self.goal_x = 9.9
+        self.goal_x = 9.6
         self.goal_y = -6.6
         
         # robot properties [m]
         self.robot_radius = 0.7
-
+        
         # Resolution
         self.calc_res = 0.5
+        self.obs_cluster = 450
+
+        self.kattrac = 66.0
+        self.krepuls = 20.0
 
     def robotpose_callback(self, msg):
         self.robot_x = msg.pose.pose.position.x
@@ -55,7 +59,8 @@ class GlobalCostmapNode(Node):
         if self.map_received is True:
             print("Received map")
             path_x, path_y = self.vff_planner(self.robot_x, self.robot_y, self.goal_x, self.goal_y, self.obs_x, self.obs_y, self.calc_res, self.robot_radius)
-            self.path_marker([path_x,path_y])
+            self.path_marker(self.smoother_path(path_x, path_y))
+            # self.map_info = None
             if self.visualize:
                 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 
@@ -77,6 +82,20 @@ class GlobalCostmapNode(Node):
                 plt.tight_layout()
                 plt.show()
 
+    def smoother_path(self, path_x, path_y):
+        # Create a cubic spline interpolation
+        spline_x = CubicSpline(range(len(path_x)), path_x)
+        spline_y = CubicSpline(range(len(path_y)), path_y)
+
+        # Generate new smooth path points
+        num_points = len(path_x) * 1000  # Adjust as needed
+        t = np.linspace(0, len(path_x) - 1, num_points)
+        smooth_path_x = spline_x(t)
+        smooth_path_y = spline_y(t)
+
+        smoother_path_arr = [smooth_path_x, smooth_path_y]
+        return smoother_path_arr
+    
     def create_map(self):
         if self.map_info is None:
             self.get_logger().warn('Waiting for map.')
@@ -91,7 +110,7 @@ class GlobalCostmapNode(Node):
 
         map_array = np.array(self.map_data).reshape(self.height, self.width)
         
-        filtercost_map = np.where(map_array < 100, 0, map_array)
+        filtercost_map = np.where(map_array < 99, 0, map_array)
 
         map_scale_x = np.linspace(self.origin_x, self.origin_x + self.resolution * self.width, self.width)
         map_scale_y = np.linspace(self.origin_y, self.origin_y + self.resolution * self.height, self.height)
@@ -108,11 +127,10 @@ class GlobalCostmapNode(Node):
         filtercost_map = np.flipud(filtercost_map)
 
         obstacle_points = np.column_stack((map_obstacle_x, map_obstacle_y))
-        kmeans = KMeans(n_clusters=400)  # Adjust the number of clusters as needed
+        kmeans = KMeans(n_clusters=self.obs_cluster)  # Adjust the number of clusters as needed
         kmeans.fit(obstacle_points)
         cluster_centers = kmeans.cluster_centers_
 
-        # Assign downsampled obstacle points to self.obs_x and self.obs_y
         self.obs_x = cluster_centers[:, 0]
         self.obs_y = cluster_centers[:, 1]
 
@@ -199,7 +217,7 @@ class GlobalCostmapNode(Node):
         return pmap, minx, miny
 
     def calc_attractive_potential(self, x, y, gx, gy):
-        return 0.5 * 20 * np.hypot(x - gx, y - gy)
+        return 0.5 * self.kattrac * np.hypot(x - gx, y - gy)
 
     def calc_repulsive_potential(self, x, y, ox, oy, rbtr):
         minid = -1
@@ -215,7 +233,7 @@ class GlobalCostmapNode(Node):
         if dq <= rbtr:
             if dq <= 0.1:
                 dq = 0.1
-            return 0.5 * 3000.0 * (1.0 / dq - 1.0 / rbtr) ** 2
+            return 0.5 * self.krepuls * (1.0 / dq - 1.0 / rbtr) ** 2
         else:
             return 0.0
     
@@ -242,21 +260,18 @@ class GlobalCostmapNode(Node):
         return motion
     
     def path_marker(self, path):
-        # Create a Path message
         path_msg = Path()
-        path_msg.header.frame_id = "map"  # Set the frame ID appropriately
+        path_msg.header.frame_id = "map"  
         
         for i in range(len(path[0])):
             pose = PoseStamped()
             pose.header.stamp = self.get_clock().now().to_msg()
-            pose.header.frame_id = "map"  # Set the frame ID appropriately
+            pose.header.frame_id = "map"
             pose.pose.position.x = path[0][i]
             pose.pose.position.y = path[1][i]
-            # Assuming the orientation is not relevant for your application
             pose.pose.orientation.w = 1.0
             path_msg.poses.append(pose)
 
-        # Publish the path message
         self.path_publisher.publish(path_msg)
 
 def main(args=None):
