@@ -7,6 +7,7 @@ from nav2_msgs.action import ComputePathToPose
 from geometry_msgs.msg import PoseStamped, Twist, PointStamped
 import tf_transformations
 import math
+import numpy as np
 import time
 import tf2_ros
 from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
@@ -17,7 +18,7 @@ class DifferentialDrivePurePursuit(Node):
     def __init__(self):
         super().__init__("differential_drive_pure_pursuit")
         self.create_subscription(PointStamped, "clicked_point", self.clicked_point_callback, 10)
-        self.action_client = ActionClient(self, ComputePathToPose, 'compute_path_to_pose')
+        self.action_client = ActionClient(self, ComputePathToPose, 'compute_path_to_pose2')
         self.velocity_publisher = self.create_publisher(Twist, 'cmd_vel', 10)
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
@@ -27,6 +28,7 @@ class DifferentialDrivePurePursuit(Node):
         self.goal_threshold = 0.6
 
         self.controller_active = 0
+        self.send_goal_in_progress = False
         self.goal_pose = None
         self.robot_pose = None
         self.path = None
@@ -47,15 +49,26 @@ class DifferentialDrivePurePursuit(Node):
             self.publish_velocity(0.0, 0.0)
             self.get_logger().info('Goal reached')
             return
-        if self.next_update_time < time.time():
-            self.next_update_time = time.time() + 0.2
+        if self.next_update_time < time.time() and not self.send_goal_in_progress:
+            self.next_update_time = time.time() + 0.0
             # get new path and reset current pose index
+            self.send_goal_in_progress = True
             self.send_goal(self.goal_pose)
             self.current_pose_index = 0
 
         # main logic
         if self.current_pose_index < len(self.path):
             current_pose = self.path[self.current_pose_index]
+            # skip to the closest point in the path
+            dx = []
+            dy = []
+            for i in range(len(self.path)):
+                dx.append(self.robot_pose.position.x - self.path[i].pose.position.x)
+                dy.append(self.robot_pose.position.y - self.path[i].pose.position.y)
+            d = np.hypot(dx, dy)
+            ind = np.argmin(d)
+            self.current_pose_index = ind if ind > self.current_pose_index else self.current_pose_index
+            # calculate the next goal point
             goal_point = self.calculate_goal_point(self.path, self.robot_pose, self.current_pose_index)
             if goal_point is not None:
                 linear_vel, angular_vel = self.calculate_velocities(self.robot_pose, goal_point)
@@ -94,6 +107,7 @@ class DifferentialDrivePurePursuit(Node):
 
     def clicked_point_callback(self, msg):
         self.controller_active = 2
+        self.send_goal_in_progress = False
         self.get_logger().info(f"Received goal point: [{msg.point.x:.2}, {msg.point.y:.2}]")
         self.goal_pose = PoseStamped()
         self.goal_pose.header.frame_id = "map"
@@ -112,6 +126,7 @@ class DifferentialDrivePurePursuit(Node):
         goal_handle = future.result()
         if not goal_handle.accepted:
             self.get_logger().info('Goal rejected')
+            self.send_goal_in_progress = False
             return
         self.result_future = goal_handle.get_result_async()
         self.result_future.add_done_callback(self.get_result_callback)
@@ -120,6 +135,7 @@ class DifferentialDrivePurePursuit(Node):
         result = future.result().result
         self.get_logger().info(f'Path received: len[{len(result.path.poses)}]')
         self.path = result.path.poses
+        self.send_goal_in_progress = False
         if self.controller_active == 2:
             self.controller_active = 1
 

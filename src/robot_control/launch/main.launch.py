@@ -38,12 +38,18 @@ def generate_launch_description():
         package="robot_control",
         executable="velocity_controller.py",
         parameters=[{"use_sim_time": True}],
-        remappings={("/cmd_vel", "/cmd_vel_nav2")}
+    )
+
+    purepursuit_dynamic = Node(
+        package="robot_control",
+        executable="purepursuit_dynamic.py",
+        parameters=[{"use_sim_time": True}],
     )
 
     description = LaunchDescription()
     description.add_action(simulation)
     description.add_action(navigation)
-    # description.add_action(velocity_controller)
+    description.add_action(velocity_controller)
     description.add_action(odom_publisher)
+    # description.add_action(purepursuit_dynamic)
     return description
