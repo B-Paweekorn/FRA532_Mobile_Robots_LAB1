@@ -36,6 +36,8 @@ install(
     scripts/VFF.py
     scripts/odom_publisher.py
     scripts/velocity_controller.py
+    scripts/purepursuit_dynamic.py
+    scripts/global_planner.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
