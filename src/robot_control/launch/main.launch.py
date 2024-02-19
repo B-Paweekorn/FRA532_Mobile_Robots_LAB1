@@ -64,6 +64,6 @@ def generate_launch_description():
     description.add_action(velocity_controller)
     description.add_action(odom_publisher)
     description.add_action(purepursuit_dynamic)
-    description.add_action(vff_avoidance)
+    # description.add_action(vff_avoidance)
     # description.add_action(custom_global_planner)
     return description
