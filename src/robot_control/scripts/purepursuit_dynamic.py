@@ -18,8 +18,8 @@ class DifferentialDrivePurePursuit(Node):
     def __init__(self):
         super().__init__("differential_drive_pure_pursuit")
         self.create_subscription(PointStamped, "clicked_point", self.clicked_point_callback, 10)
-        self.action_client = ActionClient(self, ComputePathToPose, 'compute_path_to_pose2')
-        self.velocity_publisher = self.create_publisher(Twist, 'cmd_vel', 10)
+        self.action_client = ActionClient(self, ComputePathToPose, 'compute_path_to_pose')
+        self.velocity_publisher = self.create_publisher(Twist, 'cmd_vel_purepursuit', 10)
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
         self.create_timer(0.05, self.pure_pursuit_controller)

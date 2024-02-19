@@ -38,6 +38,7 @@ install(
     scripts/velocity_controller.py
     scripts/purepursuit_dynamic.py
     scripts/global_planner.py
+    scripts/vff_avoidance_from_purepursuit.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
