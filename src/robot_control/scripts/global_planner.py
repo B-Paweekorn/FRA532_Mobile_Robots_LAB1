@@ -4,7 +4,7 @@ from rclpy.action import ActionClient, ActionServer
 from rclpy.node import Node
 import rclpy
 from nav_msgs.msg import OccupancyGrid, Odometry
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 import tf_transformations
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,12 +12,13 @@ from sklearn.cluster import KMeans
 from nav_msgs.msg import Path
 from scipy.interpolate import CubicSpline
 from nav2_msgs.action import ComputePathToPose
+import time
 
 class GlobalCostmapNode(Node):
     def __init__(self):
         super().__init__('global_planner')
         self.create_subscription(OccupancyGrid, 'global_costmap/costmap', self.map_callback, 10)
-        self.create_subscription(Odometry, 'odom', self.robotpose_callback, 10)
+        self.create_subscription(PoseWithCovarianceStamped, 'amcl_pose', self.robotpose_callback, 10)
         self.action_server = ActionServer(self, ComputePathToPose, 'compute_path_to_pose2', self.execute_callback)
         # self.create_timer(0.05, self.update)
         
@@ -37,14 +38,14 @@ class GlobalCostmapNode(Node):
         self.goal_y = -6.6
         
         # robot properties [m]
-        self.robot_radius = 0.7
+        self.robot_radius = 1.0
         
         # Resolution
         self.calc_res = 0.5
         self.obs_cluster = 450
 
-        self.kattrac = 66.0
-        self.krepuls = 20.0
+        self.kattrac = 490.0
+        self.krepuls = 80.0
 
     def execute_callback(self, goal_handle):
         goal = goal_handle.request.goal.pose.position
@@ -55,86 +56,65 @@ class GlobalCostmapNode(Node):
         if self.map_received is True:
             print("Received map")
             path_x, path_y = self.vff_planner(self.robot_x, self.robot_y, goal_x, goal_y, self.obs_x, self.obs_y, self.calc_res, self.robot_radius)
-            smoothed_path = self.smoother_path(path_x, path_y)
-            self.path_marker(smoothed_path)
+            if path_x and path_y is not False:
+                smoothed_path = self.smoother_path(path_x, path_y)
+                self.path_marker(smoothed_path)
 
-            if self.visualize:
-                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+                if self.visualize:
+                    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 
-                ax1.imshow(self.map, cmap='gray', extent=[self.scale_x[0], self.scale_x[-1], self.scale_y[0], self.scale_y[-1]])
-                ax1.set_title('Occupancy Grid Map')
-                ax1.set_xlabel('X Coordinate (m)')
-                ax1.set_ylabel('Y Coordinate (m)')
-                ax1.grid(True)
+                    ax1.imshow(self.map, cmap='gray', extent=[self.scale_x[0], self.scale_x[-1], self.scale_y[0], self.scale_y[-1]])
+                    ax1.set_title('Occupancy Grid Map')
+                    ax1.set_xlabel('X Coordinate (m)')
+                    ax1.set_ylabel('Y Coordinate (m)')
+                    ax1.grid(True)
 
-                ax2.scatter(self.obs_x, self.obs_y, color='blue', marker='.')
-                ax2.set_title('Obstacle Positions')
-                ax2.set_xlabel('X Coordinate (m)')
-                ax2.set_ylabel('Y Coordinate (m)')
-                ax2.grid(True)
+                    ax2.scatter(self.obs_x, self.obs_y, color='blue', marker='.')
+                    ax2.set_title('Obstacle Positions')
+                    ax2.set_xlabel('X Coordinate (m)')
+                    ax2.set_ylabel('Y Coordinate (m)')
+                    ax2.grid(True)
 
-                ax2.set_xlim(ax1.get_xlim())
-                ax2.set_ylim(ax1.get_ylim())
+                    ax2.set_xlim(ax1.get_xlim())
+                    ax2.set_ylim(ax1.get_ylim())
 
-                plt.tight_layout()
-                plt.show()
+                    plt.tight_layout()
+                    plt.show()
 
-            path_msg = Path()
-            path_msg.header.frame_id = "map"
-            for x, y in zip(smoothed_path[0], smoothed_path[1]):
-                pose = PoseStamped()
-                pose.header.stamp = self.get_clock().now().to_msg()
-                pose.header.frame_id = "map"
-                pose.pose.position.x = x
-                pose.pose.position.y = y
-                pose.pose.orientation.w = 1.0
-                path_msg.poses.append(pose)
+                path_msg = Path()
+                path_msg.header.frame_id = "map"
+                for x, y in zip(smoothed_path[0], smoothed_path[1]):
+                    pose = PoseStamped()
+                    pose.header.stamp = self.get_clock().now().to_msg()
+                    pose.header.frame_id = "map"
+                    pose.pose.position.x = x
+                    pose.pose.position.y = y
+                    pose.pose.orientation.w = 1.0
+                    path_msg.poses.append(pose)
 
-            # Return the result
-            result = ComputePathToPose.Result()
-            result.path = path_msg
-            goal_handle.succeed()
-            print("Path sent")
-            return result
+                # Return the result
+                result = ComputePathToPose.Result()
+                result.path = path_msg
+                goal_handle.succeed()
+                print("Path sent")
+                return result
+            else:
+                result = ComputePathToPose.Result()
+                goal_handle.abort()
+                print("Fail")
+                return result
 
 
     def robotpose_callback(self, msg):
         self.robot_x = msg.pose.pose.position.x
         self.robot_y = msg.pose.pose.position.y
         orientation_q = msg.pose.pose.orientation
+        print(self.robot_x, self.robot_y)
         _, _, self.robot_th = tf_transformations.euler_from_quaternion([orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w])
 
     def map_callback(self, msg):
         self.map_info = msg.info
         self.map_data = msg.data
-
-    # def update(self):
-    #     self.map, self.scale_x, self.scale_y = self.create_map()
-    #     if self.map_received is True:
-    #         print("Received map")
-    #         path_x, path_y = self.vff_planner(self.robot_x, self.robot_y, self.goal_x, self.goal_y, self.obs_x, self.obs_y, self.calc_res, self.robot_radius)
-    #         self.path_marker(self.smoother_path(path_x, path_y))
-    #         # self.map_info = None
-    #         if self.visualize:
-    #             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-
-    #             ax1.imshow(self.map, cmap='gray', extent=[self.scale_x[0], self.scale_x[-1], self.scale_y[0], self.scale_y[-1]])
-    #             ax1.set_title('Occupancy Grid Map')
-    #             ax1.set_xlabel('X Coordinate (m)')
-    #             ax1.set_ylabel('Y Coordinate (m)')
-    #             ax1.grid(True)
-
-    #             ax2.scatter(self.obs_x, self.obs_y, color='blue', marker='.')
-    #             ax2.set_title('Obstacle Positions')
-    #             ax2.set_xlabel('X Coordinate (m)')
-    #             ax2.set_ylabel('Y Coordinate (m)')
-    #             ax2.grid(True)
-
-    #             ax2.set_xlim(ax1.get_xlim())
-    #             ax2.set_ylim(ax1.get_ylim())
-
-    #             plt.tight_layout()
-    #             plt.show()
 
     def smoother_path(self, path_x, path_y):
         # Create a cubic spline interpolation
@@ -164,7 +144,7 @@ class GlobalCostmapNode(Node):
 
         map_array = np.array(self.map_data).reshape(self.height, self.width)
         
-        filtercost_map = np.where(map_array < 99, 0, map_array)
+        filtercost_map = np.where(map_array < 50, 0, map_array)
 
         map_scale_x = np.linspace(self.origin_x, self.origin_x + self.resolution * self.width, self.width)
         map_scale_y = np.linspace(self.origin_y, self.origin_y + self.resolution * self.height, self.height)
@@ -191,7 +171,9 @@ class GlobalCostmapNode(Node):
         self.map_received = True
         return filtercost_map, map_scale_x, map_scale_y
 
-    def vff_planner(self, sx, sy, gx, gy, ox, oy, reso, rbtr):
+    def vff_planner(self, sx, sy, gx, gy, ox, oy, reso, rbtr, timeout=10):
+        start_time = time.time()  # Record the start time
+
         # [sx, sy] : start point x, y
         # [gx, gy] : goal point x, y
         # [ox, oy] : obstacle x, y
@@ -204,16 +186,12 @@ class GlobalCostmapNode(Node):
         d = np.hypot(sx - gx, sy - gy)
         ix = round((sx - minx) / reso)
         iy = round((sy - miny) / reso)
-        gix = round((gx - minx) / reso)
-        giy = round((gy - miny) / reso)
 
         if self.visualize:
             self.draw_heatmap(pmap)
-            plt.gcf().canvas.mpl_connect('key_release_event',
-                    lambda event: [exit(0) if event.key == 'escape' else None])
             plt.plot(sx, sy, "*k")
             plt.plot(gx, gy, "*m")
-        
+
         rx, ry = [sx], [sy]
         motion = self.get_motion_model()
 
@@ -243,6 +221,11 @@ class GlobalCostmapNode(Node):
             if self.visualize:
                 plt.plot(xp, yp, ".r")
                 plt.pause(0.01)
+
+            # Check if timeout has been reached
+            if time.time() - start_time > timeout:
+                return False, False
+                
 
         print("Goal!!")
         # print("---------------")

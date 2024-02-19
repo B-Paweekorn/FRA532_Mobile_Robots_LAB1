@@ -46,10 +46,17 @@ def generate_launch_description():
         parameters=[{"use_sim_time": True}],
     )
 
+    custom_global_planner = Node(
+        package="robot_control",
+        executable="global_planner.py",
+        parameters=[{"use_sim_time": True}],
+    )
+
     description = LaunchDescription()
     description.add_action(simulation)
     description.add_action(navigation)
     description.add_action(velocity_controller)
     description.add_action(odom_publisher)
-    # description.add_action(purepursuit_dynamic)
+    description.add_action(purepursuit_dynamic)
+    description.add_action(custom_global_planner)
     return description
