@@ -1,6 +1,14 @@
 # LAB 1: Local Planner
-PLACEHOLDER
 
+This project aims to develop a local planner and controller while minimizing the reliance on nav2 as much as possible. In this lab, we compare three solutions for robot navigation:
+
+1.) nav2 + pure pursuit
+
+2.) nav2 + pure pursuit + virtual force field
+
+3.) potential field + pure pursuit (without nav2)
+
+#### This project is part of FRA532 Mobile Robots at the @ Institute of Field Robotics, King Mongkut’s University of Technology Thonburi.
 <br>
 
 ## Changing differential drive controller (diff_cont) to joint group velocity controller (velocity_controllers)
