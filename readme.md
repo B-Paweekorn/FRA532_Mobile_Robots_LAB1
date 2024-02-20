@@ -12,7 +12,21 @@ This project aims to develop a local planner and controller while minimizing the
 <br>
 
 ## Changing differential drive controller (diff_cont) to joint group velocity controller (velocity_controllers)
-PLACEHOLDER
+1. In `simulation.launch.py`, the launch configuration for the differential drive controller is changed to velocity controller.
+```py
+# controller = Node(
+#   package="controller_manager",
+#   executable="spawner",
+#   arguments=["diff_cont", "-c", "/controller_manager"],
+#)
+controller = Node(
+  package="controller_manager",
+  executable="spawner",
+  arguments=["velocity_controllers", "-c", "/controller_manager"],
+)
+```
+2. A new node `velocity_controller.py` is created. It subscribes to `/cmd_vel`, compute inverse kinematics for differential drive robot, then publish the joint speed to the JointGroupVelocityController at `/velocity_controllers/commands`. The node also publish the wheel speed to `feedback_wheelspeed`.
+3. Another new node `odom_publisher.py` subscribes to `/feedback_wheelspeed`, compute forward kinematics and publish to `/odom` and `/tf`.
 
 <br>
 
@@ -20,7 +34,42 @@ PLACEHOLDER
 
 - #### Pseudocode: Dynamic Pure Pursuit
 
-  PLACEHOLDER
+  ```py
+  # - The controller should start when point click is sent and stop when robot is at goal.
+  # - The controller will continuously request new path as long as it is active
+  # - When new path comes, the index is reset
+  # - The controller will default to the nearest point in the path if its index is higher than the current one,
+  #   this prevent the robot from running back to the start of the path if there are delay in global planner.
+  #   It also allow the robot to come back to the path if it somehow temporily went off-track.
+  
+  path = None
+  controller_enabled = 0
+  path_index = 0
+  
+  callback(goal given by point click):
+    controller_enabled = 1
+  callback(path received):
+    path = msg.path
+    path_index = 0
+
+  def calculate_goal_point(path_index, path, robot_pose){
+    return (furthest path index within lookahead distanch)
+  }
+  def calculate_velocity(robot_pose, goal){
+    return (pure pursuit inverse kinematic of differential drive robot)
+  }
+  
+  void loop():
+    if (controller_enabled):
+      if (robot at goal):
+        controller_enabled = 0
+        return
+      if (no path request in queue):
+        request path to final goal point from global planner
+      path_index = (index of path point that is closest to the robot)
+      calculate_goal_point()
+      calculate_velocity()
+  ```
 
 - #### Pseudocode: Virtual Force Field (VFF)
 
