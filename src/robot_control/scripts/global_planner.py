@@ -38,14 +38,14 @@ class GlobalCostmapNode(Node):
         self.goal_y = -6.6
         
         # robot properties [m]
-        self.robot_radius = 1.0
+        self.robot_radius = 1.3
         
         # Resolution
-        self.calc_res = 0.5
-        self.obs_cluster = 450
+        self.calc_res = 1.0
+        self.obs_cluster = 190
 
-        self.kattrac = 490.0
-        self.krepuls = 80.0
+        self.kattrac = 600.0
+        self.krepuls = 500.0
 
     def execute_callback(self, goal_handle):
         goal = goal_handle.request.goal.pose.position
