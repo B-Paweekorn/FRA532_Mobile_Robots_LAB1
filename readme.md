@@ -77,7 +77,42 @@ controller = Node(
 
 - #### Pseudocode: Potential Field Global Planner (extra)
 
-  PLACEHOLDER
+  ```py
+    # - Planner received map.
+    # - Use K-means to make reduce resolution of the obstacle.
+    # - Calculated attractive and repulsive to make potential map.
+    # - Use behavior of the robots to plan path.
+    # - Make path smoother using Cubic spline.
+    # - Send path to visualize to rviv2.
+    
+    def create_map():
+      Received map
+      Filter a costmap to mamke it faster to calculated
+      Transform unit pixel <-> cartesian  
+      Find significant obstacle using kmeans.
+      return filtered_map
+  
+    def vff_calc():
+      Calculated attractive potential
+      Calculated repulsive potential
+      Sum of attractive and repulsive
+      Add weight value to each point
+      return potential map
+
+    def planner():
+      Potential map = vff_calc
+      find path
+      run path
+
+    def smoother_path():
+      return  smoother path array
+  
+    void loop():
+      if request_path = True
+        path = vff_planer()
+        smooth path = smoother_path()
+        visualize in rviz
+    ```
 
 <br>
 
