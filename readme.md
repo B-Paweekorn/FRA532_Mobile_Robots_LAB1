@@ -95,44 +95,44 @@ controller = Node(
   ```
 
 - #### Pseudocode: Potential Field Global Planner (extra)
-
   ```py
-  # - Planner received map.
-  # - Use K-means to make reduce resolution of the obstacle.
-  # - Calculated attractive and repulsive to make potential map.
-  # - Use behavior of the robots to plan path.
-  # - Make path smoother using Cubic spline.
-  # - Send path to visualize to rviv2.
-  
+  # Function to create a filtered map from received map data
   def create_map():
-    Received map
-    Filter a costmap to mamke it faster to calculated
-    Transform unit pixel <-> cartesian  
-    Find significant obstacle using kmeans.
-    return filtered_map
-
+      # Receive map data
+      Filter costmap to improve calculation speed
+      Convert pixel units to cartesian coordinates
+      Identify significant obstacles using k-means clustering
+      Return filtered map
+  
+  # Function to calculate the vector field forces
   def vff_calc():
-    Calculated attractive potential
-    Calculated repulsive potential
-    Sum of attractive and repulsive
-    Add weight value to each point
-    return potential map
-
+      Calculate attractive potential
+      Calculate repulsive potential
+      Combine attractive and repulsive potentials
+      Assign weight values to each point
+      Return potential map
+  
+  # Function to plan a path using potential field method
   def planner():
-    Potential map = vff_calc
-    find path
-    run path
-
+      Potential map = vff_calc()
+      Find a path using the potential map
+      Execute the planned path
+  
+  # Function to smoothen the planned path
   def smoother_path():
-    return  smoother path array
-
-  void loop():
-    if request_path = True
-      path = vff_planer()
-      smooth path = smoother_path()
-      visualize in rviz
-    ```
-
+      Return a smoother path array
+  
+  # Main loop of the planner
+  def main_loop():
+      If request for a path is received:
+          Plan a path using the Potential Field method
+          Smooth the planned path
+          Visualize the smoothed path in rviz
+  
+  # Main program entry point
+  if __name__ == "__main__":
+      Run the main loop continuously
+  ```
 <br>
 
 ## Potential field 
