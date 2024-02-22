@@ -138,7 +138,7 @@ controller = Node(
 ## Potential field (Extra)
 ![image](https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/assets/122732439/11bf6f54-df69-47e6-8501-963ebe57e135)
 
-Template for global planner (without ROS2 action):  [template](https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/tree/potentialfield-testing)
+Template for global planner (without ROS2 action):  [template](https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/blob/potentialfield-testing/src/robot_control/scripts/global_planner.py)
 ### Parameter 
 
 `self.visualize`: This setting allows you to control whether you want to see the results while editing parameters. It's recommended to set it to False if you plan to run more than one iteration to avoid unnecessary visualizations that might slow down the process.
