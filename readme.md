@@ -259,5 +259,5 @@ This table shows the time taken for each mode of navigation. If the value is gre
   
 - When dealing with environments with obstacles, the **Nav2 + PurePursuit + VFF** combination proves to be more versatile and reliable.
   
-- If the environment consists mainly of open spaces without narrow passages or obstacles, **Potential field + PurePursuit** could be considered for its efficiency.
+-  If the environment consists mainly of open spaces without narrow passages or obstacles, **Potential field + PurePursuit** could be considered for its efficiency. However, it's important to note that the potential field algorithm's didnt optize yet so performance is hindered by its slow speed. It cannot generate new paths in real-time, which limits its effectiveness in dynamic environments.
 
