@@ -204,7 +204,7 @@ After conducting each experiment, the performance of each navigation method will
 
 The formula for the score can be represented as:
 
-$Score\ =\ \left(\frac{1}{Time}\right)\cdot Safepath$
+$Score\ =\ \left(\frac{1}{Time}\right)\cdot Safepath\cdot scaler$
 <br>
 
 ## Coding
