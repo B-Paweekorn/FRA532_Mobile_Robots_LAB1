@@ -241,11 +241,15 @@ ros2 launch robot_control main.launch.py
 
 https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/assets/47713359/b1b67830-9bd3-41a1-99af-e21d0026139d
 
+from:
+
+$Score\ =\ \left(\frac{1}{Time}\right)\cdot Safepath\cdot scaler$
+`scaler` will gain best action to 100
 | Mode                          | Without Obstacle | With Obstacle | Narrow |
 |-------------------------------|------------------|---------------|--------|
-| Nav2 + PurePursuit           | 21.49            | 42.25         | 0      |
-| Nav2 + PurePursuit + VFF     | 24.92            | 49.79         | 36.30  |
-| Potential field + PurePursuit| 31.37            | 0             | 0      |
+| Nav2 + PurePursuit           | 100 (t = 21.49)   | 100.0 (t = 42.25)  | 0 (t = inf)      |
+| Nav2 + PurePursuit + VFF     | 86.23 (t = 24.92) | 84.85 (t = 49.79)  | 100.0 (t = 36.30)  |
+| Potential field + PurePursuit| 68.50 (t = 31.37) | 0 (t = inf)        | 0 (t = inf)      |
 
 This table shows the time taken for each mode of navigation. If the value is greater than 0, it indicates a valid navigation time. The analysis suggests:
 
