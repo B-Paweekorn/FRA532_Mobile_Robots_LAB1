@@ -116,6 +116,31 @@ controller = Node(
 
 <br>
 
+## Potential field 
+![image](https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/assets/122732439/11bf6f54-df69-47e6-8501-963ebe57e135)
+
+### Parameter
+
+`self.visualize`: This setting allows you to control whether you want to see the results while editing parameters. It's recommended to set it to False if you plan to run more than one iteration to avoid unnecessary visualizations that might slow down the process.
+
+`self.robot_x`: This represents the initial pose of the robot along the x-axis.
+
+`self.robot_y`: This represents the initial pose of the robot along the y-axis.
+
+`self.goal_x` : This denotes the target position along the x-axis where the robot needs to reach.
+
+`self.goal_y`: This denotes the target position along the y-axis where the robot needs to reach.
+
+`self.robot_radius`: This parameter defines the dimensions of the robot, which are used to create a potential map.
+
+`self.calc_res`: This parameter represents the resolution of the calculation. Increasing it will result in smoother but slower calculations.
+
+`self.obs_cluster`: This involves simplifying raw map data by using significant points.
+
+`self.kattrac`: This is the gain factor for the attractive forces in the robot's navigation.
+
+`self.krepuls`: This is the gain factor for the repulsive forces in the robot's navigation.
+
 ## Lab experiment design
 PLACEHOLDER
 
