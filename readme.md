@@ -135,10 +135,11 @@ controller = Node(
   ```
 <br>
 
-## Potential field 
+## Potential field (Extra)
 ![image](https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/assets/122732439/11bf6f54-df69-47e6-8501-963ebe57e135)
 
-### Parameter
+Template for global planner (without ROS2 action):  
+### Parameter 
 
 `self.visualize`: This setting allows you to control whether you want to see the results while editing parameters. It's recommended to set it to False if you plan to run more than one iteration to avoid unnecessary visualizations that might slow down the process.
 
@@ -161,8 +162,49 @@ controller = Node(
 `self.krepuls`: This is the gain factor for the repulsive forces in the robot's navigation.
 
 ## Lab experiment design
-PLACEHOLDER
+### Experiment Setup:
 
+#### Without Obstacles:
+
+1. **Pure Pursuit (PP) Alone:**
+   - The robot navigates using only the Pure Pursuit algorithm without any additional enhancements like obstacle avoidance.
+   - This serves as the baseline for comparison.
+
+2. **Pure Pursuit (PP) with Virtual Force Field (VFF):**
+   - The robot uses Pure Pursuit along with a Virtual Force Field (VFF) for obstacle avoidance.
+   - The VFF assists the robot in navigating around potential obstacles.
+
+3. **Potential Field (PF) with Pure Pursuit (PP):**
+   - The robot navigates using the Potential Field method in conjunction with Pure Pursuit.
+   - The Potential Field method helps guide the robot by considering both attractive and repulsive forces in the environment.
+
+#### With Obstacles:
+
+4. **Pure Pursuit (PP) with Obstacles:**
+   - The robot navigates using only the Pure Pursuit algorithm in an environment with obstacles.
+   - This is to observe how well the robot navigates when obstacles are present without additional assistance.
+
+5. **Pure Pursuit (PP) with Virtual Force Field (VFF) and Obstacles:**
+   - The robot uses Pure Pursuit along with a Virtual Force Field (VFF) in an environment with obstacles.
+   - The VFF aids the robot in maneuvering around obstacles effectively.
+
+6. **Potential Field (PF) with Pure Pursuit (PP) and Obstacles:**
+   - The robot navigates using the Potential Field method along with Pure Pursuit in an environment with obstacles.
+   - This combination helps the robot navigate while considering both the attractive and repulsive forces of obstacles.
+
+### Objective:
+
+The objective of these experiments is to evaluate and compare the performance of different navigation methods in terms of efficiency and safety. Efficiency is measured by the time taken to reach the goal, while safety is assessed based on the ability of the robot to navigate without colliding with obstacles.
+
+### Evaluation:
+
+After conducting each experiment, the performance of each navigation method will be evaluated based on the defined criteria:
+- Time taken to reach the goal: Lower is better.
+- Safety of the path: A binary measure (0 or 1), where 1 indicates a safe path without collisions and 0 indicates otherwise.
+
+The formula for the score can be represented as:
+
+$Score\ =\ \left(\frac{1}{Time}\right)\cdot Safepath$
 <br>
 
 ## Coding
