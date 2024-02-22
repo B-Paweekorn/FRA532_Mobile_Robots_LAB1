@@ -238,4 +238,9 @@ ros2 launch robot_control main.launch.py
 <br>
 
 ## Conclusions and analysis
-PLACEHOLDER
+
+| Mode                 | Without Obstacle | With Obstacle |
+|----------------------|------------------|---------------|
+| Nav2+PurePursuit     |                  |               |
+| Nav2+PurePursuit     |                  |               |
+| Nav2+PurePursuit+VFF |                  |               |
