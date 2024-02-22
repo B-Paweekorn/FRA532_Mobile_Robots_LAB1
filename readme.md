@@ -69,49 +69,68 @@ controller = Node(
       path_index = (index of path point that is closest to the robot)
       calculate_goal_point()
       calculate_velocity()
+      publish_cmd_vel()
   ```
 
 - #### Pseudocode: Virtual Force Field (VFF)
 
-  PLACEHOLDER
+  ```py
+  # - The VFF node receives `/cmd_vel_purepursuit` from the pure pursuit node and `/scan` from LIDAR
+  # - It performs virtual force field calculation if there are object detected near the robot
+  #   and then gives output to `/cmd_vel`
+
+  callback(cmd_vel):
+    cmd = msg.cmd
+  callback(scan):
+    scan = msg.distance
+
+  void loop():
+    min_i = argmin(scan)
+    if scan[min_i] < 1.0:
+      calculate angle from min_i
+      intensity = 1.0 - scan[min_i]
+      linear = cmd.linear.x
+      angular = cmd.angular.z + (vff angle + pi)
+      publish_cmd_vel(linear, angular)
+  ```
 
 - #### Pseudocode: Potential Field Global Planner (extra)
 
   ```py
-    # - Planner received map.
-    # - Use K-means to make reduce resolution of the obstacle.
-    # - Calculated attractive and repulsive to make potential map.
-    # - Use behavior of the robots to plan path.
-    # - Make path smoother using Cubic spline.
-    # - Send path to visualize to rviv2.
-    
-    def create_map():
-      Received map
-      Filter a costmap to mamke it faster to calculated
-      Transform unit pixel <-> cartesian  
-      Find significant obstacle using kmeans.
-      return filtered_map
+  # - Planner received map.
+  # - Use K-means to make reduce resolution of the obstacle.
+  # - Calculated attractive and repulsive to make potential map.
+  # - Use behavior of the robots to plan path.
+  # - Make path smoother using Cubic spline.
+  # - Send path to visualize to rviv2.
   
-    def vff_calc():
-      Calculated attractive potential
-      Calculated repulsive potential
-      Sum of attractive and repulsive
-      Add weight value to each point
-      return potential map
+  def create_map():
+    Received map
+    Filter a costmap to mamke it faster to calculated
+    Transform unit pixel <-> cartesian  
+    Find significant obstacle using kmeans.
+    return filtered_map
 
-    def planner():
-      Potential map = vff_calc
-      find path
-      run path
+  def vff_calc():
+    Calculated attractive potential
+    Calculated repulsive potential
+    Sum of attractive and repulsive
+    Add weight value to each point
+    return potential map
 
-    def smoother_path():
-      return  smoother path array
-  
-    void loop():
-      if request_path = True
-        path = vff_planer()
-        smooth path = smoother_path()
-        visualize in rviz
+  def planner():
+    Potential map = vff_calc
+    find path
+    run path
+
+  def smoother_path():
+    return  smoother path array
+
+  void loop():
+    if request_path = True
+      path = vff_planer()
+      smooth path = smoother_path()
+      visualize in rviz
     ```
 
 <br>
@@ -124,6 +143,8 @@ PLACEHOLDER
 ## Coding
 The code can be found here
 
+- [Velocity Controller](https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/blob/master/src/robot_control/scripts/velocity_controller.py)
+- [Odometry Publisher](https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/blob/master/src/robot_control/scripts/odom_publisher.py)
 - [Dynamic Pure Pursuit](https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/blob/master/src/robot_control/scripts/purepursuit_dynamic.py)
 - [Virtual Force Field](https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/blob/nav2%2Bpurepursuit%2BVFF/src/robot_control/scripts/vff_avoidance_from_purepursuit.py)
 - [Potential Field Global Planner](https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/blob/potentialfield%2Bpurepursuit/src/robot_control/scripts/global_planner.py)
