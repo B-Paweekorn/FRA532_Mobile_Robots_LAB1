@@ -237,10 +237,27 @@ ros2 launch robot_control main.launch.py
 
 <br>
 
-## Conclusions and analysis
+## Conclusions and Analysis
 
-| Mode                 | Without Obstacle | With Obstacle |
-|----------------------|------------------|---------------|
-| Nav2+PurePursuit     |                  |               |
-| Nav2+PurePursuit     |                  |               |
-| Nav2+PurePursuit+VFF |                  |               |
+| Mode                          | Without Obstacle | With Obstacle | Narrow |
+|-------------------------------|------------------|---------------|--------|
+| Nav2 + PurePursuit           | 21.49            | 42.25         | 0      |
+| Nav2 + PurePursuit + VFF     | 24.92            | 49.79         | 36.30  |
+| Potential field + PurePursuit| 31.37            | 0             | 0      |
+
+This table shows the time taken for each mode of navigation. If the value is greater than 0, it indicates a valid navigation time. The analysis suggests:
+
+- **Nav2 + PurePursuit**: This algorithm performs well in scenarios without obstacles and those with obstacles. However, it struggles in narrow passages.
+
+- **Nav2 + PurePursuit + VFF**: This combination improves performance in all scenarios, including narrow passages, as indicated by the non-zero time taken in the 'Narrow' category.
+
+- **Potential field + PurePursuit**: This algorithm seems effective in scenarios without obstacles, but it fails to navigate in environments with obstacles, as indicated by the 'With Obstacle' time being 0. It also cannot navigate narrow passages.
+
+### Conclusions:
+
+- For general navigation where obstacles are not a concern, **Nav2 + PurePursuit** might be the preferred choice due to its overall lower time consumption.
+  
+- When dealing with environments with obstacles, the **Nav2 + PurePursuit + VFF** combination proves to be more versatile and reliable.
+  
+- If the environment consists mainly of open spaces without narrow passages or obstacles, **Potential field + PurePursuit** could be considered for its efficiency.
+
