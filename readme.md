@@ -239,6 +239,8 @@ ros2 launch robot_control main.launch.py
 
 ## Conclusions and Analysis
 
+https://github.com/Nopparuj-an/FRA532_Mobile_Robots_LAB1/assets/47713359/b1b67830-9bd3-41a1-99af-e21d0026139d
+
 | Mode                          | Without Obstacle | With Obstacle | Narrow |
 |-------------------------------|------------------|---------------|--------|
 | Nav2 + PurePursuit           | 21.49            | 42.25         | 0      |
